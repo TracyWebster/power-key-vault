@@ -1,0 +1,170 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Lock, Unlock } from "lucide-react";
+import { EnergyMeter } from "@/components/EnergyMeter";
+import { EnergyFooter } from "@/components/EnergyFooter";
+import { CreateEnergyRecord, EnergyRecord } from "@/components/CreateEnergyRecord";
+import { EnergyRecordsList } from "@/components/EnergyRecordsList";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
+import { useEnergyVault } from "@/hooks/useEnergyVault";
+import Image from "next/image";
+
+export default function Home() {
+  const [isEncrypted, setIsEncrypted] = useState(true);
+  const [energyRecords, setEnergyRecords] = useState<EnergyRecord[]>([]);
+  const { isConnected } = useAccount();
+  
+  const {
+    isLoading,
+    createRecord,
+    decryptRecord,
+    decryptingId,
+    totalGeneration,
+    totalConsumption,
+  } = useEnergyVault();
+
+  const toggleEncryption = async () => {
+    if (!isConnected) {
+      return;
+    }
+    setIsEncrypted(!isEncrypted);
+  };
+
+  const handleRecordCreated = (record: EnergyRecord) => {
+    setEnergyRecords([record, ...energyRecords]);
+  };
+
+  const handleCreateRecord = async (type: "generation" | "consumption", source: string, value: number) => {
+    await createRecord(type, source, value);
+  };
+
+  const handleDecrypt = async (recordId: string): Promise<number | null> => {
+    const decryptedValue = await decryptRecord(recordId);
+    if (decryptedValue !== null) {
+      setEnergyRecords(records =>
+        records.map(r =>
+          r.id === recordId ? { ...r, value: decryptedValue, isEncrypted: false } : r
+        )
+      );
+    }
+    return decryptedValue;
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Hero Section */}
+      <header 
+        className="relative bg-cover bg-center py-20 px-6"
+        style={{ 
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(/hero-bg.jpg)` 
+        }}
+      >
+        {/* Wallet Connect Button - Top Right */}
+        <div className="absolute top-4 right-4">
+          <ConnectButton />
+        </div>
+
+        <div className="container mx-auto">
+          <div className="flex items-center justify-center mb-8">
+            <Image src="/logo.png" alt="Power Key Vault Logo" width={80} height={80} />
+          </div>
+          <h1 className="text-5xl md:text-6xl font-bold text-center text-white mb-6">
+            Power the Grid, Privately.
+          </h1>
+          <p className="text-xl text-center text-white/90 max-w-2xl mx-auto">
+            Record encrypted energy generation and consumption data, decrypted only for verified trades.
+          </p>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto px-6 py-12">
+        {!isConnected ? (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-4">Connect Your Wallet</h2>
+            <p className="text-muted-foreground mb-6">
+              Please connect your wallet to create and manage encrypted energy records.
+            </p>
+            <ConnectButton />
+          </div>
+        ) : (
+          <>
+            {/* Encryption Toggle */}
+            <div className="flex justify-center mb-12">
+              <Button
+                onClick={toggleEncryption}
+                size="lg"
+                variant={isEncrypted ? "default" : "secondary"}
+                className="gap-2"
+              >
+                {isEncrypted ? (
+                  <>
+                    <Lock className="w-5 h-5" />
+                    Decrypt Data for Trade
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="w-5 h-5" />
+                    Re-encrypt Data
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Energy Meters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+              <EnergyMeter
+                title="Solar Generation"
+                value={totalGeneration * 0.6}
+                maxValue={1000}
+                isEncrypted={isEncrypted}
+              />
+              <EnergyMeter
+                title="Home Consumption"
+                value={totalConsumption * 0.7}
+                maxValue={1000}
+                isEncrypted={isEncrypted}
+              />
+              <EnergyMeter
+                title="Wind Generation"
+                value={totalGeneration * 0.4}
+                maxValue={500}
+                isEncrypted={isEncrypted}
+              />
+              <EnergyMeter
+                title="Grid Export"
+                value={Math.max(0, totalGeneration - totalConsumption)}
+                maxValue={500}
+                isEncrypted={isEncrypted}
+              />
+            </div>
+
+            {/* Create Energy Record */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+              <CreateEnergyRecord 
+                onRecordCreated={handleRecordCreated}
+                isLoading={isLoading}
+                onSubmit={handleCreateRecord}
+              />
+              <EnergyRecordsList 
+                records={energyRecords}
+                onDecrypt={handleDecrypt}
+                decryptingId={decryptingId}
+              />
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* Footer */}
+      <EnergyFooter 
+        totalGeneration={totalGeneration}
+        totalConsumption={totalConsumption}
+        isEncrypted={isEncrypted}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* EnergyTrust Design System - All colors MUST be HSL */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 158 64% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 158 64% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 158 64% 12%;
+
+    --primary: 142 76% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 158 58% 35%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 142 30% 96%;
+    --muted-foreground: 158 25% 45%;
+
+    --accent: 188 85% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 142 30% 88%;
+    --input: 142 30% 88%;
+    --ring: 142 76% 45%;
+
+    --radius: 0.75rem;
+    
+    --energy-glow: 142 76% 45%;
+    --locked: 158 58% 35%;
+    --unlocked: 142 76% 45%;
+    
+    --gradient-energy: linear-gradient(135deg, hsl(142 76% 45%) 0%, hsl(158 58% 35%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(142 30% 98%) 100%);
+    
+    --shadow-glow: 0 0 30px hsl(142 76% 45% / 0.15);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 158 45% 8%;
+    --foreground: 142 30% 95%;
+
+    --card: 158 40% 12%;
+    --card-foreground: 142 30% 95%;
+
+    --popover: 158 40% 12%;
+    --popover-foreground: 142 30% 95%;
+
+    --primary: 142 76% 45%;
+    --primary-foreground: 158 64% 12%;
+
+    --secondary: 158 50% 25%;
+    --secondary-foreground: 142 30% 95%;
+
+    --muted: 158 40% 18%;
+    --muted-foreground: 142 20% 65%;
+
+    --accent: 188 85% 45%;
+    --accent-foreground: 158 64% 12%;
+
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 142 30% 95%;
+
+    --border: 158 40% 18%;
+    --input: 158 40% 18%;
+    --ring: 142 76% 45%;
+    
+    --gradient-energy: linear-gradient(135deg, hsl(142 76% 45%) 0%, hsl(158 58% 35%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(158 40% 12%) 0%, hsl(158 35% 15%) 100%);
+    
+    --shadow-glow: 0 0 30px hsl(142 76% 45% / 0.25);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
