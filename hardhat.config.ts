@@ -17,6 +17,7 @@ import "./tasks/FHECounter";
 // Run 'npx hardhat vars setup' to see the list of variables that need to be set
 
 // Provide a safe fallback for Hardhat <2.22 where `vars` is not available
+// Configuration optimized for FHE development
 const vars = (_vars as any) ?? { get: (_name: string, fallback = "") => fallback };
 
 // Prefer environment variables first; fallback to hardhat vars when useful
