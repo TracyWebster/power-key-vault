@@ -92,21 +92,21 @@ export const useEnergyVault = (parameters: {
     );
   }, [energyVault.address, instance, ethersSigner, isLoading]);
 
-  // Create a new energy record
+  // Create a new energy record - returns record ID on success
   const createRecord = useCallback(
-    async (type: "generation" | "consumption", source: string, value: number) => {
-      if (isLoadingRef.current) return;
+    async (type: "generation" | "consumption", source: string, value: number): Promise<string | null> => {
+      if (isLoadingRef.current) return null;
       if (!energyVault.address || !instance || !ethersSigner) {
         toast.error("Wallet not connected or contract not deployed");
-        return;
+        return null;
       }
       if (!Number.isFinite(value) || value < 0) {
         toast.error("Invalid value");
-        return;
+        return null;
       }
       if (value > 0xffffffff) {
         toast.error("Value must fit in uint32");
-        return;
+        return null;
       }
 
       const thisChainId = chainId;
@@ -118,64 +118,82 @@ export const useEnergyVault = (parameters: {
       setIsLoading(true);
       setMessage("Encrypting and submitting record...");
 
-      const run = async () => {
-        await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 100));
 
-        const isStale = () =>
-          thisAddress !== energyVaultRef.current?.address ||
-          !sameChain.current(thisChainId) ||
-          !sameSigner.current(thisSigner);
+      const isStale = () =>
+        thisAddress !== energyVaultRef.current?.address ||
+        !sameChain.current(thisChainId) ||
+        !sameSigner.current(thisSigner);
 
-        try {
-          const input = instance.createEncryptedInput(thisAddress, thisSigner.address);
-          input.add32(Math.round(value * 10)); // Store with 1 decimal precision
-          const enc = await input.encrypt();
+      try {
+        const input = instance.createEncryptedInput(thisAddress, thisSigner.address);
+        input.add32(Math.round(value * 10)); // Store with 1 decimal precision
+        const enc = await input.encrypt();
 
-          if (isStale()) {
-            setMessage("Ignore createRecord - stale");
-            return;
-          }
-
-          const method = type === "generation" ? "createGenerationRecord" : "createConsumptionRecord";
-          const tx: ethers.TransactionResponse = await contract[method](
-            source,
-            enc.handles[0],
-            enc.inputProof
-          );
-          setMessage(`Waiting tx ${tx.hash}...`);
-          toast.info("Transaction submitted, waiting for confirmation...");
-          await tx.wait();
-
-          if (isStale()) {
-            setMessage("Ignore createRecord - stale");
-            return;
-          }
-
-          setMessage("Record created successfully");
-          toast.success(`${type === "generation" ? "Generation" : "Consumption"} record created!`);
-
-          // Update local totals
-          if (type === "generation") {
-            setTotalGeneration((prev) => prev + value);
-          } else {
-            setTotalConsumption((prev) => prev + value);
-          }
-        } catch (e: unknown) {
-          const s = String(e ?? "");
-          if (s.includes("Failed to fetch") || s.includes("code\": -32603")) {
-            setMessage("createRecord failed: Wallet RPC unreachable.");
-            toast.error("Wallet RPC unreachable. Please check your network.");
-          } else {
-            setMessage("createRecord failed: " + s);
-            toast.error("Failed to create record: " + s);
-          }
-        } finally {
-          isLoadingRef.current = false;
-          setIsLoading(false);
+        if (isStale()) {
+          setMessage("Ignore createRecord - stale");
+          return null;
         }
-      };
 
-      run();
+        const method = type === "generation" ? "createGenerationRecord" : "createConsumptionRecord";
+        const tx: ethers.TransactionResponse = await contract[method](
+          source,
+          enc.handles[0],
+          enc.inputProof
+        );
+        setMessage(`Waiting tx ${tx.hash}...`);
+        toast.info("Transaction submitted, waiting for confirmation...");
+        const receipt = await tx.wait();
+
+        if (isStale()) {
+          setMessage("Ignore createRecord - stale");
+          return null;
+        }
+
+        // Parse RecordCreated event to get the record ID
+        let recordId: string | null = null;
+        if (receipt && receipt.logs) {
+          for (const log of receipt.logs) {
+            try {
+              const parsed = contract.interface.parseLog({
+                topics: log.topics as string[],
+                data: log.data,
+              });
+              if (parsed && parsed.name === "RecordCreated") {
+                recordId = parsed.args.id.toString();
+                break;
+              }
+            } catch {
+              // Not our event, skip
+            }
+          }
+        }
+
+        setMessage("Record created successfully");
+        toast.success(`${type === "generation" ? "Generation" : "Consumption"} record created!`);
+
+        // Update local totals
+        if (type === "generation") {
+          setTotalGeneration((prev) => prev + value);
+        } else {
+          setTotalConsumption((prev) => prev + value);
+        }
+
+        return recordId;
+      } catch (e: unknown) {
+        const s = String(e ?? "");
+        if (s.includes("Failed to fetch") || s.includes("code\": -32603")) {
+          setMessage("createRecord failed: Wallet RPC unreachable.");
+          toast.error("Wallet RPC unreachable. Please check your network.");
+        } else {
+          setMessage("createRecord failed: " + s);
+          toast.error("Failed to create record: " + s);
+        }
+        return null;
+      } finally {
+        isLoadingRef.current = false;
+        setIsLoading(false);
+      }
     },
     [ethersSigner, energyVault.address, energyVault.abi, instance, chainId, sameChain, sameSigner]
   );
