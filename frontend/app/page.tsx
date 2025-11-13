@@ -7,24 +7,50 @@ import { EnergyMeter } from "@/components/EnergyMeter";
 import { EnergyFooter } from "@/components/EnergyFooter";
 import { CreateEnergyRecord, EnergyRecord } from "@/components/CreateEnergyRecord";
 import { EnergyRecordsList } from "@/components/EnergyRecordsList";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+import { useFhevm } from "@/fhevm/useFhevm";
+import { useInMemoryStorage } from "@/hooks/useInMemoryStorage";
+import { useMetaMaskEthersSigner } from "@/hooks/metamask/useMetaMaskEthersSigner";
 import { useEnergyVault } from "@/hooks/useEnergyVault";
 import Image from "next/image";
 
 export default function Home() {
   const [isEncrypted, setIsEncrypted] = useState(true);
   const [energyRecords, setEnergyRecords] = useState<EnergyRecord[]>([]);
-  const { isConnected } = useAccount();
-  
+
+  // MetaMask and FHEVM setup
+  const { storage: fhevmDecryptionSignatureStorage } = useInMemoryStorage();
   const {
-    isLoading,
-    createRecord,
-    decryptRecord,
-    decryptingId,
-    totalGeneration,
-    totalConsumption,
-  } = useEnergyVault();
+    provider,
+    chainId,
+    isConnected,
+    connect,
+    ethersSigner,
+    ethersReadonlyProvider,
+    sameChain,
+    sameSigner,
+    initialMockChains,
+  } = useMetaMaskEthersSigner();
+
+  const {
+    instance: fhevmInstance,
+  } = useFhevm({
+    provider,
+    chainId,
+    initialMockChains,
+    enabled: true,
+  });
+
+  // EnergyVault hook with all required parameters
+  const energyVault = useEnergyVault({
+    instance: fhevmInstance,
+    fhevmDecryptionSignatureStorage,
+    eip1193Provider: provider,
+    chainId,
+    ethersSigner,
+    ethersReadonlyProvider,
+    sameChain,
+    sameSigner,
+  });
 
   const toggleEncryption = async () => {
     if (!isConnected) {
@@ -38,11 +64,11 @@ export default function Home() {
   };
 
   const handleCreateRecord = async (type: "generation" | "consumption", source: string, value: number) => {
-    await createRecord(type, source, value);
+    await energyVault.createRecord(type, source, value);
   };
 
   const handleDecrypt = async (recordId: string): Promise<number | null> => {
-    const decryptedValue = await decryptRecord(recordId);
+    const decryptedValue = await energyVault.decryptRecord(recordId);
     if (decryptedValue !== null) {
       setEnergyRecords(records =>
         records.map(r =>
@@ -64,7 +90,13 @@ export default function Home() {
       >
         {/* Wallet Connect Button - Top Right */}
         <div className="absolute top-4 right-4">
-          <ConnectButton />
+          <button
+            onClick={connect}
+            disabled={isConnected}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isConnected ? `Connected (Chain ${chainId})` : "Connect Wallet"}
+          </button>
         </div>
 
         <div className="container mx-auto">
@@ -88,7 +120,12 @@ export default function Home() {
             <p className="text-muted-foreground mb-6">
               Please connect your wallet to create and manage encrypted energy records.
             </p>
-            <ConnectButton />
+            <button
+              onClick={connect}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90"
+            >
+              Connect to MetaMask
+            </button>
           </div>
         ) : (
           <>
@@ -118,25 +155,25 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
               <EnergyMeter
                 title="Solar Generation"
-                value={totalGeneration * 0.6}
+                value={energyVault.totalGeneration * 0.6}
                 maxValue={1000}
                 isEncrypted={isEncrypted}
               />
               <EnergyMeter
                 title="Home Consumption"
-                value={totalConsumption * 0.7}
+                value={energyVault.totalConsumption * 0.7}
                 maxValue={1000}
                 isEncrypted={isEncrypted}
               />
               <EnergyMeter
                 title="Wind Generation"
-                value={totalGeneration * 0.4}
+                value={energyVault.totalGeneration * 0.4}
                 maxValue={500}
                 isEncrypted={isEncrypted}
               />
               <EnergyMeter
                 title="Grid Export"
-                value={Math.max(0, totalGeneration - totalConsumption)}
+                value={Math.max(0, energyVault.totalGeneration - energyVault.totalConsumption)}
                 maxValue={500}
                 isEncrypted={isEncrypted}
               />
@@ -146,13 +183,13 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
               <CreateEnergyRecord 
                 onRecordCreated={handleRecordCreated}
-                isLoading={isLoading}
+                isLoading={energyVault.isLoading}
                 onSubmit={handleCreateRecord}
               />
               <EnergyRecordsList 
                 records={energyRecords}
                 onDecrypt={handleDecrypt}
-                decryptingId={decryptingId}
+                decryptingId={energyVault.decryptingId}
               />
             </div>
           </>
@@ -161,8 +198,8 @@ export default function Home() {
 
       {/* Footer */}
       <EnergyFooter 
-        totalGeneration={totalGeneration}
-        totalConsumption={totalConsumption}
+        totalGeneration={energyVault.totalGeneration}
+        totalConsumption={energyVault.totalConsumption}
         isEncrypted={isEncrypted}
       />
     </div>
