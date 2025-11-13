@@ -1,7 +1,6 @@
-# FHEVM Hardhat Template
+# Power Key Vault
 
-A Hardhat-based template for developing Fully Homomorphic Encryption (FHE) enabled Solidity smart contracts using the
-FHEVM protocol by Zama.
+A secure FHE-based energy management system built with FHEVM protocol by Zama. This project enables private energy consumption tracking and management using Fully Homomorphic Encryption.
 
 ## Quick Start
 
@@ -48,6 +47,13 @@ For detailed instructions see:
    # Deploy to local network
    npx hardhat deploy --network localhost
    ```
+
+## Features
+
+- **Private Energy Tracking**: Secure energy consumption data using FHE
+- **Confidential Calculations**: Perform computations on encrypted data
+- **Next.js Frontend**: Modern web interface for energy management
+- **Smart Contract Integration**: Seamless blockchain interaction
 
 5. **Deploy to Sepolia Testnet**
 
