@@ -20,7 +20,7 @@ export interface EnergyRecord {
 interface CreateEnergyRecordProps {
   onRecordCreated: (record: EnergyRecord) => void;
   isLoading?: boolean;
-  onSubmit?: (type: "generation" | "consumption", source: string, value: number) => Promise<void>;
+  onSubmit?: (type: "generation" | "consumption", source: string, value: number) => Promise<string | null>;
 }
 
 export function CreateEnergyRecord({ onRecordCreated, isLoading = false, onSubmit }: CreateEnergyRecordProps) {
@@ -46,25 +46,29 @@ export function CreateEnergyRecord({ onRecordCreated, isLoading = false, onSubmi
     setSubmitting(true);
 
     try {
+      let recordId: string | null = null;
+      
       if (onSubmit) {
-        await onSubmit(type, source, numValue);
+        recordId = await onSubmit(type, source, numValue);
       }
 
-      const newRecord: EnergyRecord = {
-        id: Date.now().toString(),
-        type,
-        source,
-        value: numValue,
-        timestamp: new Date(),
-        isEncrypted: true,
-      };
+      // Only create local record if contract call succeeded
+      if (recordId) {
+        const newRecord: EnergyRecord = {
+          id: recordId,
+          type,
+          source,
+          value: numValue,
+          timestamp: new Date(),
+          isEncrypted: true,
+        };
 
-      onRecordCreated(newRecord);
-      toast.success("Energy record created and encrypted successfully");
+        onRecordCreated(newRecord);
 
-      // Reset form
-      setSource("");
-      setValue("");
+        // Reset form
+        setSource("");
+        setValue("");
+      }
     } catch (error) {
       toast.error("Failed to create record: " + (error as Error).message);
     } finally {

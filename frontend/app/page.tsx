@@ -63,8 +63,8 @@ export default function Home() {
     setEnergyRecords([record, ...energyRecords]);
   };
 
-  const handleCreateRecord = async (type: "generation" | "consumption", source: string, value: number) => {
-    await energyVault.createRecord(type, source, value);
+  const handleCreateRecord = async (type: "generation" | "consumption", source: string, value: number): Promise<string | null> => {
+    return await energyVault.createRecord(type, source, value);
   };
 
   const handleDecrypt = async (recordId: string): Promise<number | null> => {
