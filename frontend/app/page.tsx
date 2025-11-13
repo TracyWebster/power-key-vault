@@ -11,6 +11,7 @@ import { useFhevm } from "@/fhevm/useFhevm";
 import { useInMemoryStorage } from "@/hooks/useInMemoryStorage";
 import { useMetaMaskEthersSigner } from "@/hooks/metamask/useMetaMaskEthersSigner";
 import { useEnergyVault } from "@/hooks/useEnergyVault";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
 
 export default function Home() {
@@ -23,7 +24,6 @@ export default function Home() {
     provider,
     chainId,
     isConnected,
-    connect,
     ethersSigner,
     ethersReadonlyProvider,
     sameChain,
@@ -90,13 +90,7 @@ export default function Home() {
       >
         {/* Wallet Connect Button - Top Right */}
         <div className="absolute top-4 right-4">
-          <button
-            onClick={connect}
-            disabled={isConnected}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
-          >
-            {isConnected ? `Connected (Chain ${chainId})` : "Connect Wallet"}
-          </button>
+          <ConnectButton />
         </div>
 
         <div className="container mx-auto">
@@ -120,12 +114,7 @@ export default function Home() {
             <p className="text-muted-foreground mb-6">
               Please connect your wallet to create and manage encrypted energy records.
             </p>
-            <button
-              onClick={connect}
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90"
-            >
-              Connect to MetaMask
-            </button>
+            <ConnectButton />
           </div>
         ) : (
           <>
