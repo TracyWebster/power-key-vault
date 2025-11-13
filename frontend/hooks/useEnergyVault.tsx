@@ -153,20 +153,27 @@ export const useEnergyVault = (parameters: {
         // Parse RecordCreated event to get the record ID
         let recordId: string | null = null;
         if (receipt && receipt.logs) {
+          console.log("[useEnergyVault] Parsing logs for RecordCreated event, logs count:", receipt.logs.length);
           for (const log of receipt.logs) {
             try {
               const parsed = contract.interface.parseLog({
                 topics: log.topics as string[],
                 data: log.data,
               });
+              console.log("[useEnergyVault] Parsed log:", parsed?.name, parsed?.args);
               if (parsed && parsed.name === "RecordCreated") {
                 recordId = parsed.args.id.toString();
+                console.log("[useEnergyVault] Found RecordCreated event, recordId:", recordId);
                 break;
               }
             } catch {
               // Not our event, skip
             }
           }
+        }
+        
+        if (!recordId) {
+          console.warn("[useEnergyVault] RecordCreated event not found in logs");
         }
 
         setMessage("Record created successfully");
@@ -220,12 +227,16 @@ export const useEnergyVault = (parameters: {
       const thisChainId = chainId;
       const thisAddress = energyVault.address;
       const thisSigner = ethersSigner;
-      const contract = new ethers.Contract(thisAddress, energyVault.abi, ethersReadonlyProvider ?? thisSigner);
+      // IMPORTANT: Must use signer (not readonly provider) for getRecordEncryptedValue
+      // because the contract checks msg.sender == record.owner
+      const contract = new ethers.Contract(thisAddress, energyVault.abi, thisSigner);
 
       isDecryptingRef.current = true;
       setIsDecrypting(true);
       setDecryptingId(recordId);
       setMessage("Decrypting record...");
+
+      console.log("[useEnergyVault] Decrypting record:", recordId, "from address:", thisSigner.address);
 
       try {
         const isStale = () =>
@@ -234,7 +245,10 @@ export const useEnergyVault = (parameters: {
           !sameSigner.current(thisSigner);
 
         // Get the encrypted handle from contract
-        const encryptedHandle = await contract.getRecordEncryptedValue(recordId);
+        // Convert recordId to BigInt for the contract call
+        const recordIdBigInt = BigInt(recordId);
+        console.log("[useEnergyVault] Calling getRecordEncryptedValue with recordId:", recordIdBigInt);
+        const encryptedHandle = await contract.getRecordEncryptedValue(recordIdBigInt);
 
         if (isStale()) {
           setMessage("Ignore decrypt - stale");
@@ -294,7 +308,6 @@ export const useEnergyVault = (parameters: {
     [
       fhevmDecryptionSignatureStorage,
       ethersSigner,
-      ethersReadonlyProvider,
       energyVault.address,
       energyVault.abi,
       instance,
