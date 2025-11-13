@@ -6,11 +6,6 @@ import { Toaster } from "sonner";
 export const metadata: Metadata = {
   title: "Power Key Vault - Private Energy Data",
   description: "Store and manage encrypted energy generation and consumption data with FHE",
-  icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/logo.png",
-  },
 };
 
 export default async function RootLayout({
