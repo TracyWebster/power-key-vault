@@ -43,6 +43,16 @@ export function CreateEnergyRecord({ onRecordCreated, isLoading = false, onSubmi
       return;
     }
 
+    if (numValue > 10000) {
+      toast.error("Energy value cannot exceed 10,000 kWh");
+      return;
+    }
+
+    if (source.length < 2) {
+      toast.error("Source description must be at least 2 characters");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -70,7 +80,18 @@ export function CreateEnergyRecord({ onRecordCreated, isLoading = false, onSubmi
         setValue("");
       }
     } catch (error) {
-      toast.error("Failed to create record: " + (error as Error).message);
+      console.error("CreateEnergyRecord error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      
+      if (errorMessage.includes("user rejected")) {
+        toast.error("Transaction was cancelled by user");
+      } else if (errorMessage.includes("insufficient funds")) {
+        toast.error("Insufficient funds for transaction");
+      } else if (errorMessage.includes("network")) {
+        toast.error("Network error. Please check your connection");
+      } else {
+        toast.error(`Failed to create record: ${errorMessage}`);
+      }
     } finally {
       setSubmitting(false);
     }
