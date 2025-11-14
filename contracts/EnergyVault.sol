@@ -126,8 +126,12 @@ contract EnergyVault is SepoliaConfig {
         euint32 value = FHE.fromExternal(encryptedValue, inputProof);
         recordId = _createRecord(RecordType.GENERATION, source, value);
         
-        // Update total generation
-        _totalGeneration[msg.sender] = FHE.add(_totalGeneration[msg.sender], value);
+        // Update total generation (handle zero initialization)
+        if (FHE.decrypt(_totalGeneration[msg.sender]) == 0) {
+            _totalGeneration[msg.sender] = value;
+        } else {
+            _totalGeneration[msg.sender] = FHE.add(_totalGeneration[msg.sender], value);
+        }
         FHE.allowThis(_totalGeneration[msg.sender]);
         FHE.allow(_totalGeneration[msg.sender], msg.sender);
     }
@@ -145,8 +149,12 @@ contract EnergyVault is SepoliaConfig {
         euint32 value = FHE.fromExternal(encryptedValue, inputProof);
         recordId = _createRecord(RecordType.CONSUMPTION, source, value);
         
-        // Update total consumption
-        _totalConsumption[msg.sender] = FHE.add(_totalConsumption[msg.sender], value);
+        // Update total consumption (handle zero initialization)
+        if (FHE.decrypt(_totalConsumption[msg.sender]) == 0) {
+            _totalConsumption[msg.sender] = value;
+        } else {
+            _totalConsumption[msg.sender] = FHE.add(_totalConsumption[msg.sender], value);
+        }
         FHE.allowThis(_totalConsumption[msg.sender]);
         FHE.allow(_totalConsumption[msg.sender], msg.sender);
     }
