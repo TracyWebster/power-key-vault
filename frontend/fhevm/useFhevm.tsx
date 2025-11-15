@@ -62,8 +62,11 @@ export function useFhevm(parameters: {
     _setStatus("idle");
 
     if (provider !== undefined) {
-      // Force call main useEffect
-      _setProviderChanged((prev) => prev + 1);
+      // Add small delay to prevent race conditions
+      setTimeout(() => {
+        // Force call main useEffect
+        _setProviderChanged((prev) => prev + 1);
+      }, 10);
     }
 
     // Do not modify the running flag.
@@ -149,7 +152,7 @@ export function useFhevm(parameters: {
           _setStatus("ready");
         })
         .catch((e) => {
-          console.log(`Error Was thrown !!! error... ` + e.name);
+          console.error(`[useFhevm] FHEVM instance creation failed:`, e);
           if (thisSignal.aborted) return;
 
           // it's not possible to have a _providerRef modified without a prior abort
@@ -159,7 +162,7 @@ export function useFhevm(parameters: {
           );
 
           _setInstance(undefined);
-          _setError(e);
+          _setError(e instanceof Error ? e : new Error(String(e)));
           _setStatus("error");
         });
     }
