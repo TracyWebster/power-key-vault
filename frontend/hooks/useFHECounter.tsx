@@ -185,9 +185,19 @@ export const useFHECounter = (parameters: {
       ethersReadonlyProvider
     );
 
+    // Add timeout to prevent hanging requests
+    const timeoutId = setTimeout(() => {
+      if (isRefreshingRef.current) {
+        setMessage("Request timeout - please try again");
+        isRefreshingRef.current = false;
+        setIsRefreshing(false);
+      }
+    }, 30000); // 30 second timeout
+
     thisFheCounterContract
       .getCount()
       .then((value) => {
+        clearTimeout(timeoutId);
         console.log("[useFHECounter] getCount()=" + value);
         if (
           sameChain.current(thisChainId) &&
@@ -200,6 +210,8 @@ export const useFHECounter = (parameters: {
         setIsRefreshing(false);
       })
       .catch((e) => {
+        clearTimeout(timeoutId);
+        console.error("[useFHECounter] getCount() error:", e);
         setMessage("FHECounter.getCount() call failed! error=" + e);
 
         isRefreshingRef.current = false;
@@ -449,8 +461,10 @@ export const useFHECounter = (parameters: {
           }
 
           refreshCountHandle();
-        } catch {
-          setMessage(`${opMsg} Failed!`);
+        } catch (error) {
+          console.error(`[useFHECounter] ${opMsg} error:`, error);
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          setMessage(`${opMsg} Failed: ${errorMessage}`);
         } finally {
           isIncOrDecRef.current = false;
           setIsIncOrDec(false);
