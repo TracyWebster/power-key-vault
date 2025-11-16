@@ -290,14 +290,36 @@ export const useEnergyVault = (parameters: {
           return null;
         }
 
-        const decryptedValue = Number(res[encryptedHandle] as bigint) / 10;
+        const rawValue = res[encryptedHandle];
+        if (rawValue === undefined || rawValue === null) {
+          throw new Error("Decryption returned undefined value");
+        }
+        
+        const decryptedValue = Number(rawValue as bigint) / 10;
+        if (isNaN(decryptedValue) || decryptedValue < 0) {
+          throw new Error("Invalid decrypted value");
+        }
+        
         setMessage(`Record decrypted: ${decryptedValue} kWh`);
         toast.success("Record decrypted successfully!");
         return decryptedValue;
       } catch (e: unknown) {
-        const s = String(e ?? "");
-        setMessage("Decrypt failed: " + s);
-        toast.error("Failed to decrypt: " + s);
+        console.error("[useEnergyVault] Decrypt error:", e);
+        const errorMessage = e instanceof Error ? e.message : String(e ?? "Unknown error");
+        
+        if (errorMessage.includes("user rejected")) {
+          setMessage("Decryption cancelled by user");
+          toast.error("Decryption was cancelled");
+        } else if (errorMessage.includes("Not record owner")) {
+          setMessage("Access denied - not record owner");
+          toast.error("You don't have permission to decrypt this record");
+        } else if (errorMessage.includes("Record does not exist")) {
+          setMessage("Record not found");
+          toast.error("The requested record does not exist");
+        } else {
+          setMessage("Decrypt failed: " + errorMessage);
+          toast.error("Failed to decrypt: " + errorMessage);
+        }
         return null;
       } finally {
         isDecryptingRef.current = false;
