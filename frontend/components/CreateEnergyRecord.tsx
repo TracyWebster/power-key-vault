@@ -78,6 +78,7 @@ export function CreateEnergyRecord({ onRecordCreated, isLoading = false, onSubmi
         // Reset form
         setSource("");
         setValue("");
+        toast.success(`${type === "generation" ? "Generation" : "Consumption"} record created successfully!`);
       }
     } catch (error) {
       console.error("CreateEnergyRecord error:", error);
@@ -144,11 +145,15 @@ export function CreateEnergyRecord({ onRecordCreated, isLoading = false, onSubmi
               type="number"
               step="0.1"
               min="0"
+              max="10000"
               placeholder="0.0"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               disabled={loading}
             />
+            <p className="text-xs text-muted-foreground">
+              Maximum value: 10,000 kWh
+            </p>
           </div>
           
           <Button type="submit" className="w-full gap-2" disabled={loading}>
