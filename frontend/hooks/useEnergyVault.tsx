@@ -11,6 +11,15 @@ import { GenericStringStorage } from "@/fhevm/GenericStringStorage";
 import { EnergyVaultABI } from "@/abi/EnergyVaultABI";
 import { EnergyVaultAddresses } from "@/abi/EnergyVaultAddresses";
 
+export interface EnergyRecord {
+  id: string;
+  type: "generation" | "consumption";
+  source: string;
+  value: number;
+  timestamp: Date;
+  isEncrypted: boolean;
+}
+
 type EnergyVaultInfo = {
   abi: typeof EnergyVaultABI.abi;
   address?: `0x${string}`;
@@ -59,15 +68,18 @@ export const useEnergyVault = (parameters: {
   } = parameters;
 
   const [isLoading, setIsLoading] = useState(false);
+  const [records, setRecords] = useState<EnergyRecord[]>([]);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
   const [totalGeneration, setTotalGeneration] = useState(0);
   const [totalConsumption, setTotalConsumption] = useState(0);
-  const [message, setMessage] = useState<string>("");
+  const [message, setMessage] = useState("");
+  const [isListening, setIsListening] = useState(false);
 
   const energyVaultRef = useRef<EnergyVaultInfo | undefined>(undefined);
-  const isLoadingRef = useRef<boolean>(false);
-  const isDecryptingRef = useRef<boolean>(false);
+  const isLoadingRef = useRef<boolean>(isLoading);
+  const isDecryptingRef = useRef<boolean>(isDecrypting);
+  const contractRef = useRef<ethers.Contract | null>(null);
 
   const energyVault = useMemo(() => {
     const c = getEnergyVaultByChainId(chainId);
@@ -339,6 +351,61 @@ export const useEnergyVault = (parameters: {
     ]
   );
 
+  // Event listener setup
+  const setupEventListeners = useCallback(() => {
+    if (!energyVault.address || !ethersReadonlyProvider || isListening) {
+      return;
+    }
+
+    const contract = new ethers.Contract(
+      energyVault.address,
+      energyVault.abi,
+      ethersReadonlyProvider
+    );
+
+    contractRef.current = contract;
+    setIsListening(true);
+
+    // Listen for RecordCreated events
+    contract.on("RecordCreated", (id, owner, recordType, source, timestamp) => {
+      console.log("[useEnergyVault] RecordCreated event:", { id, owner, recordType, source, timestamp });
+      
+      // Only add records for the current user
+      if (ethersSigner && owner.toLowerCase() === ethersSigner.address.toLowerCase()) {
+        const newRecord: EnergyRecord = {
+          id: id.toString(),
+          type: recordType === 0 ? "generation" : "consumption",
+          source,
+          value: 0, // Will be decrypted later if needed
+          timestamp: new Date(Number(timestamp) * 1000),
+          isEncrypted: true,
+        };
+        
+        setRecords(prev => {
+          // Avoid duplicates
+          if (prev.some(r => r.id === newRecord.id)) {
+            return prev;
+          }
+          return [...prev, newRecord];
+        });
+      }
+    });
+
+    return () => {
+      contract.removeAllListeners();
+      setIsListening(false);
+    };
+  }, [energyVault.address, energyVault.abi, ethersReadonlyProvider, ethersSigner, isListening]);
+
+  // Cleanup event listeners on unmount
+  const cleanupEventListeners = useCallback(() => {
+    if (contractRef.current) {
+      contractRef.current.removeAllListeners();
+      contractRef.current = null;
+      setIsListening(false);
+    }
+  }, []);
+
   return {
     contractAddress: energyVault.address,
     isDeployed,
@@ -352,5 +419,9 @@ export const useEnergyVault = (parameters: {
     totalGeneration,
     totalConsumption,
     message,
+    records,
+    setupEventListeners,
+    cleanupEventListeners,
+    isListening,
   };
 };
