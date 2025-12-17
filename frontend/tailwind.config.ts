@@ -104,10 +104,19 @@ export default {
       backgroundImage: {
         "gradient-energy": "var(--gradient-energy)",
         "gradient-card": "var(--gradient-card)",
+        "gradient-hero": "var(--gradient-hero)",
+        "gradient-mesh": "var(--gradient-mesh)",
         noise: "url('/noise.svg')",
       },
       boxShadow: {
         glow: "var(--shadow-glow)",
+        card: "var(--shadow-card)",
+        lg: "var(--shadow-lg)",
+        xl: "var(--shadow-xl)",
+      },
+      transitionProperty: {
+        'smooth': 'var(--transition-smooth)',
+        'bounce': 'var(--transition-bounce)',
       },
     },
   },

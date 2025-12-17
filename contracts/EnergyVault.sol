@@ -40,6 +40,10 @@ contract EnergyVault is SepoliaConfig {
     /// @notice Encrypted aggregated consumption total per user
     mapping(address => euint32) private _totalConsumption;
 
+    /// @notice Track if user has initialized their totals
+    mapping(address => bool) private _generationInitialized;
+    mapping(address => bool) private _consumptionInitialized;
+
     /// @notice Event emitted when a new energy record is created
     event RecordCreated(
         uint256 indexed id,
@@ -126,9 +130,10 @@ contract EnergyVault is SepoliaConfig {
         euint32 value = FHE.fromExternal(encryptedValue, inputProof);
         recordId = _createRecord(RecordType.GENERATION, source, value);
         
-        // Update total generation (handle zero initialization)
-        if (FHE.decrypt(_totalGeneration[msg.sender]) == 0) {
+        // Update total generation
+        if (!_generationInitialized[msg.sender]) {
             _totalGeneration[msg.sender] = value;
+            _generationInitialized[msg.sender] = true;
         } else {
             _totalGeneration[msg.sender] = FHE.add(_totalGeneration[msg.sender], value);
         }
@@ -149,9 +154,10 @@ contract EnergyVault is SepoliaConfig {
         euint32 value = FHE.fromExternal(encryptedValue, inputProof);
         recordId = _createRecord(RecordType.CONSUMPTION, source, value);
         
-        // Update total consumption (handle zero initialization)
-        if (FHE.decrypt(_totalConsumption[msg.sender]) == 0) {
+        // Update total consumption
+        if (!_consumptionInitialized[msg.sender]) {
             _totalConsumption[msg.sender] = value;
+            _consumptionInitialized[msg.sender] = true;
         } else {
             _totalConsumption[msg.sender] = FHE.add(_totalConsumption[msg.sender], value);
         }

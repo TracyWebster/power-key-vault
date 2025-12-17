@@ -4,7 +4,7 @@ A secure FHE-based energy management system built with FHEVM protocol by Zama. T
 
 ## 🚀 Live Demo
 
-**🌐 [Try Power Key Vault](https://power-key-vault.vercel.app/)**
+**🌐 [Try Power Key Vault](https://power-key-vault-phi.vercel.app/)**
 
 ## 🎥 Demo Video
 
